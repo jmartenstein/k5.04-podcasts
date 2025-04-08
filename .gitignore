@@ -1,6 +1,7 @@
 .DS_Store
 data/**
 src/.ipynb_checkpoints/**
+src/catboost_info/**
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
