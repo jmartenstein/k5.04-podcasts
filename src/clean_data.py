@@ -1,10 +1,10 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import sklearn.preprocessing as pre
 
 import argparse
 
-from sklearn  import preprocessing, impute
 from datetime import datetime
 
 ### CONSTANTS ###
@@ -58,20 +58,25 @@ hist, bin_edges = np.histogram( df_["Num_Ads"],
 df_["Num_Ads_Bin"] = pd.cut( df_[ "Num_Ads" ], bins=bin_edges,
                              labels=[0, 1, 2, 3], include_lowest=True
                            )
-#print("Histogram with 4 bins:", hist)
-#print("Bin edges:", bin_edges)
 
-#hist_ads = df_.hist( column="Number_of_Ads", bins=4 )
-#df_["Number_of_Ads"].hist(bins=[-0.5, 0.5, 1.5, 2.5, 3.5])
-#plt.show()
-#print(df_["Number_of_Ads"].head())
+genre_enc = pre.TargetEncoder( cv=3 )
+adsbin_enc = pre.TargetEncoder( cv=3 )
 
 # prep the cleaned training data to write
 df_train_clean = df_[ df_[ TARGET_COLUMN ].notna() ].copy()
 
+genre_enc.fit( df_train_clean[["Genre"]], df_train_clean[TARGET_COLUMN] )
+df_train_clean["Genre_Encoded"] = genre_enc.transform(df_train_clean[["Genre"]])
+
+adsbin_enc.fit( df_train_clean[["Num_Ads_Bin"]], df_train_clean[TARGET_COLUMN] )
+df_train_clean["Ads_Bin_Encoded"] = adsbin_enc.transform(df_train_clean[["Num_Ads_Bin"]])
+
 # prep the cleaned test data to write
 df_test_clean = df_[ df_[ TARGET_COLUMN ].isna() ].copy()
 df_test_clean.drop( TARGET_COLUMN, axis=1, inplace=True )
+
+df_test_clean["Genre_Encoded"] = genre_enc.transform(df_test_clean[["Genre"]])
+df_test_clean["Ads_Bin_Encoded"] = adsbin_enc.transform(df_test_clean[["Num_Ads_Bin"]])
 
 if args["write"]:
 
