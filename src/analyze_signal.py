@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 DATA_DIR = "../data/kaggle/"
 ORIG_DIR = "../data/original/"
 
-df_train = pd.read_csv( DATA_DIR + "train.csv" )
+df_train = pd.read_csv( DATA_DIR + "train.clean.20250408.140401.csv" )
 #df_test  = pd.read_csv( DATA_DIR + "test.csv" )
 
 def p25( x ):
@@ -23,7 +23,7 @@ def p95( x ):
 #    return df.groupby(x_colname)[y_colname].agg(func)
 
 #x_colname      = 'Episode_Sentiment'
-x_colname       = "Publication_Time"
+x_colname       = 'Publication_Time'
 target_colname  = 'Listening_Time_minutes'
 
 print(df_train[target_colname].describe())
