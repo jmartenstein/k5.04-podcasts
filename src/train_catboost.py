@@ -12,10 +12,9 @@ import catboost as cb
 
 DATA_DIR = "../data/kaggle"
 
-NUM_TRIALS = 2
 NUM_FOLDS  = 3
 
-df_train = pd.read_csv(f"{DATA_DIR}/train.csv")
+df_train = pd.read_csv(f"{DATA_DIR}/train.clean.20250408.203439.csv")
 #df_train = pd.read_csv(f"{DATA_DIR}/podcast_dataset.csv")
 #df_test = pd.read_csv(f"{DATA_DIR}/test.csv")
 
@@ -30,8 +29,8 @@ print()
 x_colnames = [ "Podcast_Name", "Episode_Title", "Genre",
                "Host_Popularity_percentage", "Publication_Day",
                "Publication_Time", "Guest_Popularity_percentage",
-               "Number_of_Ads", "Episode_Sentiment",
-               "Episode_Length_minutes"
+               "Number_of_Ads", "Episode_Sentiment", "Num_Ads_Bin",
+               "Episode_Length_minutes", "Genre_Encoded", "Ads_Bin_Encoded"
              ]
 y_colname = "Listening_Time_minutes"
 
@@ -51,21 +50,8 @@ cv_dataset = cb.Pool( data=X_train,
 reg = cb.CatBoostRegressor( loss_function='RMSE',
                             verbose=0 )
 
-params = { 'iterations':  50,
-           'learning_rate': 0.1,
-           'loss_function': 'RMSE',
-           'depth': 6
-         }
-
-inner_cv = mds.KFold( n_splits=NUM_FOLDS, shuffle=True )
-outer_cv = mds.KFold( n_splits=NUM_FOLDS, shuffle=True )
-
-#scores = cb.cv( cv_dataset,
-#                params,
-#                fold_count=NUM_FOLDS )
-
 param_grid = { 'iterations':  [ 75 ],
-               'learning_rate': [ 0.1, 0.15, 0.2 ],
+               'learning_rate': [ 0.2 ],
                'loss_function': [ 'RMSE' ],
                'depth': [ 12 ]
              }
@@ -79,12 +65,6 @@ reg_grid = mds.GridSearchCV( estimator=reg,
                            )
 reg_grid.fit( X_train, y_train, cat_features=categorical_features_indices )
 print()
-
-#nested_scores = mds.cross_val_score( reg_grid,
-#                                     cat_features=categorical_features_indices,
-#                                     X=X_train, y=y_train,
-#                                     cv=outer_cv
-#                                   )
 
 best_params = reg_grid.best_params_
 model       = reg_grid.best_estimator_
