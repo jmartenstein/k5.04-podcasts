@@ -12,7 +12,7 @@ import catboost as cb
 
 DATA_DIR = "../data/kaggle"
 
-NUM_FOLDS  = 3
+NUM_FOLDS  = 5
 
 df_train = pd.read_csv(f"{DATA_DIR}/train.clean.20250408.203439.csv")
 #df_train = pd.read_csv(f"{DATA_DIR}/podcast_dataset.csv")
@@ -30,7 +30,8 @@ x_colnames = [ "Podcast_Name", "Episode_Title", "Genre",
                "Host_Popularity_percentage", "Publication_Day",
                "Publication_Time", "Guest_Popularity_percentage",
                "Number_of_Ads", "Episode_Sentiment", "Num_Ads_Bin",
-               "Episode_Length_minutes", "Genre_Encoded", "Ads_Bin_Encoded"
+               "Episode_Length_minutes", "Genre_Encoded", "Ads_Bin_Encoded",
+               "IsGuest"
              ]
 y_colname = "Listening_Time_minutes"
 
@@ -47,13 +48,19 @@ cv_dataset = cb.Pool( data=X_train,
                       label=y_train,
                       cat_features=categorical_features_indices )
 
-reg = cb.CatBoostRegressor( loss_function='RMSE',
-                            verbose=0 )
 
-param_grid = { 'iterations':  [ 75 ],
-               'learning_rate': [ 0.2 ],
+ITERS = 250
+PERIOD = int(ITERS / 5)
+
+reg = cb.CatBoostRegressor( verbose=1,
+                            metric_period=PERIOD )
+
+param_grid = { 'iterations':  [ ITERS ],
+               'learning_rate': [ 0.05 ],
                'loss_function': [ 'RMSE' ],
-               'depth': [ 12 ]
+               'depth': [ 9 ],
+               'l2_leaf_reg': [ 2 ],
+               'boosting_type': [ 'Plain' ]
              }
 
 print("### Grid Search and Fit ###")
