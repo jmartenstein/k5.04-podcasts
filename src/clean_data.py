@@ -48,6 +48,7 @@ df_ = pd.concat([df_train, df_test])
 
 df_["IsGuest"] = df_["Guest_Popularity_percentage"].apply( lambda v: 0 if np.isnan(v) else 1 )
 df_["Num_Ads"] = df_["Number_of_Ads"].fillna(0)
+df_["Name_And_Episode"] = df_["Podcast_Name"] + " " + df_["Episode_Title"]
 
 hist, bin_edges = np.histogram( df_["Num_Ads"],
                                 bins=[ df_["Num_Ads"].min(),
@@ -61,6 +62,7 @@ df_["Num_Ads_Bin"] = pd.cut( df_[ "Num_Ads" ], bins=bin_edges,
 
 genre_enc = pre.TargetEncoder( cv=3 )
 adsbin_enc = pre.TargetEncoder( cv=3 )
+name_enc  = pre.TargetEncoder( cv=3 )
 
 # prep the cleaned training data to write
 df_train_clean = df_[ df_[ TARGET_COLUMN ].notna() ].copy()
@@ -71,12 +73,17 @@ df_train_clean["Genre_Encoded"] = genre_enc.transform(df_train_clean[["Genre"]])
 adsbin_enc.fit( df_train_clean[["Num_Ads_Bin"]], df_train_clean[TARGET_COLUMN] )
 df_train_clean["Ads_Bin_Encoded"] = adsbin_enc.transform(df_train_clean[["Num_Ads_Bin"]])
 
+name_enc.fit( df_train_clean[["Name_And_Episode"]], df_train_clean[TARGET_COLUMN] )
+df_train_clean["Name_And_Episode_Encoded"] = name_enc.transform(df_train_clean[["Name_And_Episode"]])
+
+
 # prep the cleaned test data to write
 df_test_clean = df_[ df_[ TARGET_COLUMN ].isna() ].copy()
 df_test_clean.drop( TARGET_COLUMN, axis=1, inplace=True )
 
 df_test_clean["Genre_Encoded"] = genre_enc.transform(df_test_clean[["Genre"]])
 df_test_clean["Ads_Bin_Encoded"] = adsbin_enc.transform(df_test_clean[["Num_Ads_Bin"]])
+df_test_clean["Name_And_Episode_Encoded"] = name_enc.transform(df_test_clean[["Name_And_Episode"]])
 
 if args["write"]:
 
