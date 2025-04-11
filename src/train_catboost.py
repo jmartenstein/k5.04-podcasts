@@ -12,9 +12,11 @@ import catboost as cb
 
 DATA_DIR = "../data/kaggle"
 
-NUM_FOLDS  = 5
+NUM_FOLDS  = 2
+ITERS      = 5000
+PERIOD      = int(ITERS / 50)
 
-df_train = pd.read_csv(f"{DATA_DIR}/train.clean.20250408.203439.csv")
+df_train = pd.read_csv(f"{DATA_DIR}/train.clean.20250409.150218.csv")
 #df_train = pd.read_csv(f"{DATA_DIR}/podcast_dataset.csv")
 #df_test = pd.read_csv(f"{DATA_DIR}/test.csv")
 
@@ -26,14 +28,9 @@ print()
 
 #print(numba.__version__)
 
-x_colnames = [ "Podcast_Name", "Episode_Title", "Genre",
-               "Host_Popularity_percentage", "Publication_Day",
-               "Publication_Time", "Guest_Popularity_percentage",
-               "Number_of_Ads", "Episode_Sentiment", "Num_Ads_Bin",
-               "Episode_Length_minutes", "Genre_Encoded", "Ads_Bin_Encoded",
-               "IsGuest"
-             ]
+all_colnames = df_train.columns.tolist()
 y_colname = "Listening_Time_minutes"
+x_colnames = [ c for c in all_colnames if c != y_colname ]
 
 X = df_train[ x_colnames ]
 y = df_train[ y_colname ].values.ravel()
@@ -44,13 +41,13 @@ X_train, X_test, y_train, y_test = mds.train_test_split( X, y,
                                                        )
 categorical_features_indices = [X.columns.get_loc(col) for col in X.columns if X[col].dtype == 'object']
 
+print(f"Training data shape: {X_train.shape}")
+
 cv_dataset = cb.Pool( data=X_train,
                       label=y_train,
                       cat_features=categorical_features_indices )
 
 
-ITERS = 250
-PERIOD = int(ITERS / 5)
 
 reg = cb.CatBoostRegressor( verbose=1,
                             metric_period=PERIOD )
