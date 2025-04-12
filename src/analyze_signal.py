@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 DATA_DIR = "../data/kaggle/"
 ORIG_DIR = "../data/original/"
 
-df_train = pd.read_csv( DATA_DIR + "train.clean.20250409.150218.csv" )
+df_train = pd.read_csv( DATA_DIR + "train.clean.20250412.092425.csv" )
 #df_test  = pd.read_csv( DATA_DIR + "test.csv" )
 
 def p25( x ):
@@ -17,14 +17,13 @@ def p75( x ):
     return x.quantile(0.75)
 
 def p95( x ):
-    return x.quantile(0.92)
+    return x.quantile(0.95)
 
 #def group_percentiles( df, x_colname, y_colname, func ):
 #    return df.groupby(x_colname)[y_colname].agg(func)
 
-#x_colname      = 'Episode_Sentiment'
-x_colname       = 'Publication_Time'
-target_colname  = 'Listening_Time_minutes'
+x_colname      = 'Num_Ads_Bin'
+target_colname = "Episode_Completion"
 
 print(df_train[target_colname].describe())
 print()
