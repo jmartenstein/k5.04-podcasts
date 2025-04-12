@@ -12,13 +12,13 @@ import catboost as cb
 
 DATA_DIR = "../data/kaggle"
 
-NUM_FOLDS  = 2
-ITERS      = 5000
-PERIOD      = int(ITERS / 50)
+NUM_FOLDS  = 3
+ITERS      = 150
+PERIOD      = int(ITERS / 15)
 
-df_train = pd.read_csv(f"{DATA_DIR}/train.clean.20250409.150218.csv")
+df_train = pd.read_csv(f"{DATA_DIR}/train.clean.20250412.092425.csv")
 #df_train = pd.read_csv(f"{DATA_DIR}/podcast_dataset.csv")
-#df_test = pd.read_csv(f"{DATA_DIR}/test.csv")
+df_test = pd.read_csv(f"{DATA_DIR}/test.clean.20250412.092431.csv")
 
 #df_ = pd.concat([df_train, df_test])
 
@@ -30,7 +30,9 @@ print()
 
 all_colnames = df_train.columns.tolist()
 y_colname = "Listening_Time_minutes"
-x_colnames = [ c for c in all_colnames if c != y_colname ]
+
+exclude_columns = [ y_colname, "id", "Episode_Completion" ]
+x_colnames = [ c for c in all_colnames if c not in exclude_columns ]
 
 X = df_train[ x_colnames ]
 y = df_train[ y_colname ].values.ravel()
@@ -99,4 +101,6 @@ rmse = np.sqrt(ms.mean_squared_error(y_test, y_pred))
 print(f"RMSE for Test Data: {rmse}")
 
 #print(df_test.info())
-
+# Write predictions to submissions file
+df_test["Listening_Time_minutes"] = model.predict(df_test[x_colnames])
+df_test[["id", "Listening_Time_minutes"]].to_csv("../data/kaggle/catboost_submission.csv", index=False)
