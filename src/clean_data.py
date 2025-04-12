@@ -46,6 +46,7 @@ df_test["Listening_Time_minutes"] = np.nan
 df_ = pd.concat([df_train, df_test])
 #df_.info()
 
+df_["Length_Clean" ] = df_train[ "Episode_Length_minutes" ].apply( lambda v: 120.5 if v > 120.5 else v )
 df_["IsGuest"] = df_["Guest_Popularity_percentage"].apply( lambda v: 0 if np.isnan(v) else 1 )
 df_["Num_Ads"] = df_["Number_of_Ads"].fillna(0)
 df_["Name_And_Episode"] = df_["Podcast_Name"] + " " + df_["Episode_Title"]
