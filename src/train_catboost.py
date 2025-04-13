@@ -13,12 +13,12 @@ import catboost as cb
 DATA_DIR = "../data/kaggle"
 
 NUM_FOLDS  = 3
-ITERS      = 150
-PERIOD      = int(ITERS / 15)
+ITERS      = 100
+PERIOD      = int(ITERS / 10)
 
-df_train = pd.read_csv(f"{DATA_DIR}/train.clean.20250412.092425.csv")
+df_train = pd.read_csv(f"{DATA_DIR}/train.clean.20250413.133434.csv")
 #df_train = pd.read_csv(f"{DATA_DIR}/podcast_dataset.csv")
-df_test = pd.read_csv(f"{DATA_DIR}/test.clean.20250412.092431.csv")
+df_test = pd.read_csv(f"{DATA_DIR}/test.clean.20250413.133445.csv")
 
 #df_ = pd.concat([df_train, df_test])
 
@@ -31,7 +31,8 @@ print()
 all_colnames = df_train.columns.tolist()
 y_colname = "Listening_Time_minutes"
 
-exclude_columns = [ y_colname, "id", "Episode_Completion" ]
+exclude_columns = [ "id", "Num_Ads", "Episode_Completion_percentage", "Number_of_Ads",
+                    "Episode_Length_minutes", "Length_Clean", "Episode_Title", y_colname ]
 x_colnames = [ c for c in all_colnames if c not in exclude_columns ]
 
 X = df_train[ x_colnames ]
@@ -55,7 +56,7 @@ reg = cb.CatBoostRegressor( verbose=1,
                             metric_period=PERIOD )
 
 param_grid = { 'iterations':  [ ITERS ],
-               'learning_rate': [ 0.05 ],
+               'learning_rate': [ 0.1 ],
                'loss_function': [ 'RMSE' ],
                'depth': [ 9 ],
                'l2_leaf_reg': [ 2 ],
