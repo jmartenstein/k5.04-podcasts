@@ -13,8 +13,8 @@ import catboost as cb
 DATA_DIR = "../data/kaggle"
 
 NUM_FOLDS  = 3
-ITERS      = 100
-PERIOD      = int(ITERS / 10)
+ITERS      = 120
+PERIOD      = int(ITERS / 4)
 
 df_train = pd.read_csv(f"{DATA_DIR}/train.clean.20250413.133434.csv")
 #df_train = pd.read_csv(f"{DATA_DIR}/podcast_dataset.csv")
@@ -32,7 +32,7 @@ all_colnames = df_train.columns.tolist()
 y_colname = "Listening_Time_minutes"
 
 exclude_columns = [ "id", "Num_Ads", "Episode_Completion_percentage", "Number_of_Ads",
-                    "Episode_Length_minutes", "Length_Clean", "Episode_Title", y_colname ]
+                    "Episode_Length_minutes", "Episode_Title", y_colname ]
 x_colnames = [ c for c in all_colnames if c not in exclude_columns ]
 
 X = df_train[ x_colnames ]
@@ -53,13 +53,14 @@ cv_dataset = cb.Pool( data=X_train,
 
 
 reg = cb.CatBoostRegressor( verbose=1,
-                            metric_period=PERIOD )
+                            metric_period=PERIOD
+                          )
 
 param_grid = { 'iterations':  [ ITERS ],
-               'learning_rate': [ 0.1 ],
+               'learning_rate': [ 0.3 ],
                'loss_function': [ 'RMSE' ],
                'depth': [ 9 ],
-               'l2_leaf_reg': [ 2 ],
+               'l2_leaf_reg': [ 3 ],
                'boosting_type': [ 'Plain' ]
              }
 
@@ -77,19 +78,19 @@ best_params = reg_grid.best_params_
 model       = reg_grid.best_estimator_
 score       = reg_grid.best_score_
 
-print("### Fit Results ###")
-
-print(f"Best parameters: {best_params}")
-print(f"Best score:      {score}")
-print()
-
 print("### Feature Importance ###")
 
 importances = model.feature_importances_
 feature_imp_df = pd.DataFrame(
     {'Feature': x_colnames, 'Gini Importance': importances} ).sort_values(
          'Gini Importance', ascending=False)
-print(feature_imp_df)
+print(feature_imp_df[:10])
+print()
+
+print("### Fit Results ###")
+
+print(f"Best parameters: {best_params}")
+print(f"Best score:      {score}")
 print()
 
 # Make predictions on the test data
