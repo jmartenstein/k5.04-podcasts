@@ -21,15 +21,14 @@ TARGET2 = "Episode_Completion_percentage"
 
 ### FUNCTIONS ###
 
-def get_outfile_name( in_file ):
+def get_datetime_string( str_note ):
 
-    f_split = in_file.split(".")
     now = datetime.now()
 
     s_date = now.strftime("%Y%m%d")
     s_time = now.strftime("%H%M%S")
 
-    return f"{f_split[0]}.clean.{s_date}.{s_time}.{f_split[1]}"
+    return f"{str_note}.{s_date}.{s_time}"
 
 
 ### MAIN ###
@@ -121,11 +120,13 @@ for f in features:
 
 if args["write"]:
 
-    train_outfile = get_outfile_name("train.csv")
+    outfile_str = get_datetime_string( "clean" )
+
+    train_outfile = f"train.{outfile_str}.csv"
     print(f"write train shape: {df_train_clean.shape} to file: {train_outfile}")
     df_train_clean.to_csv(f"{DATA_DIR}/{train_outfile}", index=False)
 
-    test_outfile = get_outfile_name("test.csv")
+    test_outfile = f"test.{outfile_str}.csv"
     print(f"write test shape:  {df_test_clean.shape} to file: {test_outfile}")
     df_test_clean.to_csv(f"{DATA_DIR}/{test_outfile}", index=False)
 
