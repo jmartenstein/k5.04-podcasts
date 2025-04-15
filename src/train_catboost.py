@@ -12,13 +12,15 @@ import catboost as cb
 
 DATA_DIR = "../data/kaggle"
 
-NUM_FOLDS  = 3
-ITERS      = 120
+NUM_FOLDS  = 2
+ITERS      = 300
 PERIOD      = int(ITERS / 4)
 
-df_train = pd.read_csv(f"{DATA_DIR}/train.clean.20250413.133434.csv")
+infile_str = "clean.20250415.072300"
+
+df_train = pd.read_csv(f"{DATA_DIR}/train.{infile_str}.csv")
 #df_train = pd.read_csv(f"{DATA_DIR}/podcast_dataset.csv")
-df_test = pd.read_csv(f"{DATA_DIR}/test.clean.20250413.133445.csv")
+df_test = pd.read_csv(f"{DATA_DIR}/test.{infile_str}.csv")
 
 #df_ = pd.concat([df_train, df_test])
 
@@ -32,7 +34,8 @@ all_colnames = df_train.columns.tolist()
 y_colname = "Listening_Time_minutes"
 
 exclude_columns = [ "id", "Num_Ads", "Episode_Completion_percentage", "Number_of_Ads",
-                    "Episode_Length_minutes", "Episode_Title", y_colname ]
+                    "Episode_Length_minutes", "Length_Simple_Impute",
+                    "Episode_Title", "Length_Clean", y_colname ]
 x_colnames = [ c for c in all_colnames if c not in exclude_columns ]
 
 X = df_train[ x_colnames ]
@@ -46,21 +49,15 @@ categorical_features_indices = [X.columns.get_loc(col) for col in X.columns if X
 
 print(f"Training data shape: {X_train.shape}")
 
-cv_dataset = cb.Pool( data=X_train,
-                      label=y_train,
-                      cat_features=categorical_features_indices )
-
-
-
 reg = cb.CatBoostRegressor( verbose=1,
                             metric_period=PERIOD
                           )
 
 param_grid = { 'iterations':  [ ITERS ],
-               'learning_rate': [ 0.3 ],
+               'learning_rate': [ 0.2 ],
                'loss_function': [ 'RMSE' ],
-               'depth': [ 9 ],
-               'l2_leaf_reg': [ 3 ],
+               'depth': [ 7 ],
+               'l2_leaf_reg': [ 2 ],
                'boosting_type': [ 'Plain' ]
              }
 
@@ -84,7 +81,7 @@ importances = model.feature_importances_
 feature_imp_df = pd.DataFrame(
     {'Feature': x_colnames, 'Gini Importance': importances} ).sort_values(
          'Gini Importance', ascending=False)
-print(feature_imp_df[:10])
+print(feature_imp_df[:20])
 print()
 
 print("### Fit Results ###")
