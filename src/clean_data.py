@@ -30,6 +30,8 @@ def get_datetime_string( str_note ):
 
     return f"{str_note}.{s_date}.{s_time}"
 
+def bin_feature( s_feature, l_bins, l_labels ):
+    pass
 
 ### MAIN ###
 
@@ -54,30 +56,43 @@ df_["Length_Clean" ] = df_[ "Episode_Length_minutes" ].apply( lambda v: 120.5 if
 df_["IsGuest"] = df_["Guest_Popularity_percentage"].apply( lambda v: 0 if np.isnan(v) else 1 )
 df_["Num_Ads"] = df_["Number_of_Ads"].fillna(0).copy()
 df_["Name_And_Episode"] = df_["Podcast_Name"] + " " + df_["Episode_Title"]
+df_["Pub_Day_And_Time"] = df_["Publication_Day"] + " " + df_["Publication_Time"]
 
+iter_impute = imp.IterativeImputer(missing_values=np.nan, add_indicator=True, max_iter=20)
+impute_cols = ["Length_Clean", "Host_Popularity_percentage","Num_Ads",
+               "Guest_Popularity_percentage" ]
 
-median_impute = imp.SimpleImputer(missing_values=np.nan, strategy='median', add_indicator=True)
-median_impute.fit(df_[['Length_Clean']])
-length_features = median_impute.transform(df_[['Length_Clean']])
+iter_impute.fit(df_[impute_cols])
+#df_train_clean["Length_Iter_Impute" ] = iter_impute.transform(df_train_clean[impute_cols])[:,0]
 
-df_['Length_Simple_Impute'] = length_features[:,0]
-df_['Length_Simple_Missing'] = length_features[:,1]
+#iter_impute.fit(df_test_clean[impute_cols])
+length_features = iter_impute.transform(df_[impute_cols])
 
-df_[ TARGET2 ] = df_[TARGET1] / df_["Length_Simple_Impute"]
+#median_impute = imp.SimpleImputer(missing_values=np.nan, strategy='median', add_indicator=True)
+#median_impute.fit(df_[['Length_Clean']])
+#length_features = median_impute.transform(df_[['Length_Clean']])
+
+df_['Length_Impute'] = length_features[:,0]
+df_['Length_Missing'] = length_features[:,1]
+
+df_[ TARGET2 ] = df_[TARGET1] / df_["Length_Impute"]
 df_[ TARGET2 ] = df_[TARGET2].apply( lambda v: 1 if v > 1 else v )
 
-hist, bin_edges = np.histogram( df_["Num_Ads"],
-                                bins=[ df_["Num_Ads"].min(),
+feature = "Num_Ads"
+hist, bin_edges = np.histogram( df_[feature],
+                                bins=[ df_[feature].min(),
                                        0.5, 1.5, 2.5,
-                                       df_["Num_Ads"].max()
+                                       df_[feature].max()
                                      ]
                                )
-df_["Num_Ads_Bin"] = pd.cut( df_[ "Num_Ads" ], bins=bin_edges,
+df_[f"{feature}_Bin"] = pd.cut( df_[feature], bins=bin_edges,
                              labels=[0, 1, 2, 3], include_lowest=True
                            )
 
+df_["Ad_Rate_Per_Hour"] = df_["Num_Ads"] * (df_["Length_Impute"] / 60)
+df_["Ads_And_Host_Pop"] = (df_["Num_Ads"] * 100) + df_["Host_Popularity_percentage"]
+df_["Ads_Sentiment"] = str(df_["Num_Ads_Bin"]) + " " + df_["Episode_Sentiment"]
 
-enc = pre.TargetEncoder( cv=3 )
 
 # prep the cleaned training data to write
 df_train_clean = df_[ df_[ TARGET1 ].notna() ].copy()
@@ -86,18 +101,12 @@ df_train_clean = df_[ df_[ TARGET1 ].notna() ].copy()
 df_test_clean = df_[ df_[ TARGET1 ].isna() ].copy()
 df_test_clean.drop( TARGET1, axis=1, inplace=True )
 
-features = [ "Genre", "Num_Ads_Bin", "Name_And_Episode", "Publication_Day",
-             "Publication_Time", "Podcast_Name", "Episode_Sentiment" ]
+features = [ "Genre", "Num_Ads", "Num_Ads_Bin", "Name_And_Episode", "Publication_Day",
+             "Publication_Time", "Podcast_Name", "Episode_Sentiment",
+             "Pub_Day_And_Time", "Ads_Sentiment" ]
 targets = [ TARGET1, TARGET2 ]
-#encoded_features = [ f"T1_{feature}_{targets[0]}", f"T2_{feature}_{targets[1]}" ]
 
-#feature_hash = {
-#    f"T1_{feature}_{targets[0]}": TARGET1,
-#    f"T2_{feature}_{targets[1]}": TARGET2
-#}
-#print(feature_hash)
-
-feature = features[0]
+enc = pre.TargetEncoder( cv=3 )
 
 for f in features:
     i = 1
@@ -109,18 +118,28 @@ for f in features:
         df_test_clean[encoded_feature] = enc.transform(df_test_clean[[f]])
         i+=1
 
-#iter_impute = imp.IterativeImputer(missing_values=np.nan, max_iter=20)
-#impute_cols = ["Length_Clean", "Host_Popularity_percentage","Num_Ads_Bin"]
+poly_features = [ "Length_Impute", "Num_Ads",
+                  "T2_Name_And_Episode_Episode_Completion_percentage",
+                  "T1_Name_And_Episode_Listening_Time_minutes",
+                  "T2_Num_Ads_Episode_Completion_percentage",
+                  "Host_Popularity_percentage",
+                  "T2_Pub_Day_And_Time_Episode_Completion_percentage"
+                ]
 
-#iter_impute.fit(df_train_clean[impute_cols])
-#df_train_clean["Length_Iter_Impute" ] = iter_impute.transform(df_train_clean[impute_cols])[:,0]
+poly = pre.PolynomialFeatures(degree=2)
+poly.fit( df_train_clean[ poly_features ] )
+X_poly_train = poly.transform( df_train_clean[ poly_features ] )
+X_poly_test = poly.transform( df_test_clean[ poly_features ] )
 
-#iter_impute.fit(df_test_clean[impute_cols])
-#df_test_clean["Length_Iter_Impute" ] = iter_impute.transform(df_test_clean[impute_cols])[:,0]
+df_poly_train = pd.DataFrame(X_poly_train)
+df_poly_test = pd.DataFrame(X_poly_test)
+
+df_train_clean = df_train_clean.join(df_poly_train.add_prefix('Poly_'))
+df_test_clean = df_test_clean.join(df_poly_test.add_prefix('Poly_'))
 
 if args["write"]:
 
-    outfile_str = get_datetime_string( "clean" )
+    outfile_str = get_datetime_string( "poly" )
 
     train_outfile = f"train.{outfile_str}.csv"
     print(f"write train shape: {df_train_clean.shape} to file: {train_outfile}")
