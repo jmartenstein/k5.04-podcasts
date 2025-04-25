@@ -13,7 +13,7 @@ import catboost as cb
 DATA_DIR = "../data/kaggle"
 
 NUM_FOLDS  = 2
-ITERS      = 300
+ITERS      = 2000
 PERIOD      = int(ITERS / 4)
 
 infile_str = "clean.20250415.072300"
@@ -49,31 +49,48 @@ categorical_features_indices = [X.columns.get_loc(col) for col in X.columns if X
 
 print(f"Training data shape: {X_train.shape}")
 
-reg = cb.CatBoostRegressor( verbose=1,
-                            metric_period=PERIOD
-                          )
+GRID = False
 
-param_grid = { 'iterations':  [ ITERS ],
-               'learning_rate': [ 0.2 ],
-               'loss_function': [ 'RMSE' ],
-               'depth': [ 7 ],
-               'l2_leaf_reg': [ 2 ],
-               'boosting_type': [ 'Plain' ]
-             }
+if GRID:
 
-print("### Grid Search and Fit ###")
-reg_grid = mds.GridSearchCV( estimator=reg,
-                             param_grid=param_grid,
-                             scoring='neg_root_mean_squared_error',
-                             cv=NUM_FOLDS,
-                             verbose=4
-                           )
-reg_grid.fit( X_train, y_train, cat_features=categorical_features_indices )
-print()
+    reg = cb.CatBoostRegressor( verbose=1,
+                                metric_period=PERIOD
+                              )
 
-best_params = reg_grid.best_params_
-model       = reg_grid.best_estimator_
-score       = reg_grid.best_score_
+    param_grid = { 'iterations':  [ ITERS ],
+                   'learning_rate': [ 0.2 ],
+                   'loss_function': [ 'RMSE' ],
+                   'depth': [ 7 ],
+                   'l2_leaf_reg': [ 2 ],
+                   'boosting_type': [ 'Plain' ]
+                 }
+
+    print("### Grid Search and Fit ###")
+    reg_grid = mds.GridSearchCV( estimator=reg,
+                                 param_grid=param_grid,
+                                 scoring='neg_root_mean_squared_error',
+                                 cv=NUM_FOLDS,
+                                 verbose=4
+                               )
+    reg_grid.fit( X_train, y_train, cat_features=categorical_features_indices )
+    print()
+
+    best_params = reg_grid.best_params_
+    model       = reg_grid.best_estimator_
+    score       = reg_grid.best_score_
+
+else:
+
+    reg = cb.CatBoostRegressor( verbose=1,
+                                metric_period=PERIOD,
+                                iterations=ITERS,
+                              )
+    print("### Train CatBoost Regressor ###")
+    reg.fit( X_train, y_train, cat_features=categorical_features_indices )
+    print()
+
+    model=reg
+
 
 print("### Feature Importance ###")
 
@@ -84,22 +101,28 @@ feature_imp_df = pd.DataFrame(
 print(feature_imp_df[:20])
 print()
 
-print("### Fit Results ###")
+if GRID:
+    print("### Fit Results ###")
 
-print(f"Best parameters: {best_params}")
-print(f"Best score:      {score}")
-print()
+    print(f"Best parameters: {best_params}")
+    print(f"Best score:      {score}")
+    print()
 
 # Make predictions on the test data
+y_train_pred = model.predict(X_train)
 y_pred = model.predict(X_test)
 
-print("### Run Model against Test Set ###")
+print("### Compare Train / Test Sets ###")
 
-# Evaluate the model
+# Evaluate the model on training data
+rmse = np.sqrt(ms.mean_squared_error(y_train, y_train_pred))
+print(f"RMSE for Train Data: {rmse}")
+
+# Evaluate the model on training data
 rmse = np.sqrt(ms.mean_squared_error(y_test, y_pred))
 print(f"RMSE for Test Data: {rmse}")
 
 #print(df_test.info())
 # Write predictions to submissions file
 df_test["Listening_Time_minutes"] = model.predict(df_test[x_colnames])
-df_test[["id", "Listening_Time_minutes"]].to_csv("../data/kaggle/catboost_submission.csv", index=False)
+df_test[["id", "Listening_Time_minutes"]].to_csv("../data/kaggle/catboost_poly_submission.csv", index=False)
