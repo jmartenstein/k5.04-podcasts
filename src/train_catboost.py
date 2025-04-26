@@ -13,8 +13,8 @@ import catboost as cb
 DATA_DIR = "../data/kaggle"
 
 NUM_FOLDS  = 2
-ITERS      = 1800
-PERIOD      = int(ITERS / 10)
+ITERS      = 5000
+PERIOD      = int(ITERS / 50)
 
 infile_str = "enc_and_poly.20250426.110658"
 
