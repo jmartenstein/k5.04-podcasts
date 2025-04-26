@@ -89,6 +89,15 @@ df_[f"{feature}_Bin"] = pd.cut( df_[feature], bins=bin_edges,
                              labels=[0, 1, 2, 3], include_lowest=True
                            )
 
+length_column = df_["Length_Impute"]
+df_["Cat_Mins"] = (length_column.astype(np.int64)).astype('category')
+df_["Cat_Secs"] = ((length_column * 60).astype(np.int64)).astype('category')
+
+df_["Ads_Mins"] = df_["Number_of_Ads"].astype(str) + " " + df_["Cat_Mins"].astype(str)
+df_["All_Cats"] = df_["Podcast_Name"] + " " + df_["Publication_Day"] + " " \
+                + df_["Publication_Time"] +  " " + df_["Num_Ads_Bin"].astype(str) + " " \
+                + df_["Episode_Sentiment"]
+
 df_["Ad_Rate_Per_Hour"] = df_["Num_Ads"] * (df_["Length_Impute"] / 60)
 df_["Ads_And_Host_Pop"] = (df_["Num_Ads"] * 100) + df_["Host_Popularity_percentage"]
 df_["Ads_Sentiment"] = str(df_["Num_Ads_Bin"]) + " " + df_["Episode_Sentiment"]
@@ -101,45 +110,48 @@ df_train_clean = df_[ df_[ TARGET1 ].notna() ].copy()
 df_test_clean = df_[ df_[ TARGET1 ].isna() ].copy()
 df_test_clean.drop( TARGET1, axis=1, inplace=True )
 
-features = [ "Genre", "Num_Ads", "Num_Ads_Bin", "Name_And_Episode", "Publication_Day",
-             "Publication_Time", "Podcast_Name", "Episode_Sentiment",
-             "Pub_Day_And_Time", "Ads_Sentiment" ]
+features = [ "Ads_Mins", "Cat_Secs", "All_Cats" ]
 targets = [ TARGET1, TARGET2 ]
+
+encoded_features = []
 
 enc = pre.TargetEncoder( cv=3 )
 
 for f in features:
     i = 1
     for t in targets:
-        encoded_feature = f"T{i}_{f}_{t}"
-        #print(encoded_feature)
+        encoded_feature = f"T{i}_{f}"
         enc.fit( df_train_clean[[f]], df_train_clean[t] )
         df_train_clean[encoded_feature] = enc.transform(df_train_clean[[f]])
         df_test_clean[encoded_feature] = enc.transform(df_test_clean[[f]])
         i+=1
 
-poly_features = [ "Length_Impute", "Num_Ads",
-                  "T2_Name_And_Episode_Episode_Completion_percentage",
-                  "T1_Name_And_Episode_Listening_Time_minutes",
-                  "T2_Num_Ads_Episode_Completion_percentage",
-                  "Host_Popularity_percentage",
-                  "T2_Pub_Day_And_Time_Episode_Completion_percentage"
-                ]
+    encoded_features.append(encoded_feature)
 
-poly = pre.PolynomialFeatures(degree=2)
+poly_features = [ "Length_Impute", "Num_Ads", "Host_Popularity_percentage" ] + encoded_features
+
+poly = pre.PolynomialFeatures(degree=3)
 poly.fit( df_train_clean[ poly_features ] )
+feature_names = poly.get_feature_names_out()
+
 X_poly_train = poly.transform( df_train_clean[ poly_features ] )
-X_poly_test = poly.transform( df_test_clean[ poly_features ] )
-
 df_poly_train = pd.DataFrame(X_poly_train)
-df_poly_test = pd.DataFrame(X_poly_test)
+df_poly_train.columns = feature_names
 
-df_train_clean = df_train_clean.join(df_poly_train.add_prefix('Poly_'))
-df_test_clean = df_test_clean.join(df_poly_test.add_prefix('Poly_'))
+X_poly_test = poly.transform( df_test_clean[ poly_features ] )
+df_poly_test = pd.DataFrame(X_poly_test)
+df_poly_test.columns = feature_names
+
+unique_poly_features = list(set(df_poly_train.columns) - set(df_train_clean.columns))
+#print(unique_poly_features)
+
+df_train_clean = df_train_clean.join(df_poly_train[unique_poly_features].add_prefix('Poly '))
+df_test_clean = df_test_clean.join(df_poly_test[unique_poly_features].add_prefix('Poly '))
+
 
 if args["write"]:
 
-    outfile_str = get_datetime_string( "poly" )
+    outfile_str = get_datetime_string( "enc_and_poly" )
 
     train_outfile = f"train.{outfile_str}.csv"
     print(f"write train shape: {df_train_clean.shape} to file: {train_outfile}")
