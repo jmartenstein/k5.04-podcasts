@@ -13,10 +13,10 @@ import catboost as cb
 DATA_DIR = "../data/kaggle"
 
 NUM_FOLDS  = 2
-ITERS      = 2000
-PERIOD      = int(ITERS / 4)
+ITERS      = 1800
+PERIOD      = int(ITERS / 10)
 
-infile_str = "clean.20250415.072300"
+infile_str = "enc_and_poly.20250426.110658"
 
 df_train = pd.read_csv(f"{DATA_DIR}/train.{infile_str}.csv")
 #df_train = pd.read_csv(f"{DATA_DIR}/podcast_dataset.csv")
@@ -84,6 +84,8 @@ else:
     reg = cb.CatBoostRegressor( verbose=1,
                                 metric_period=PERIOD,
                                 iterations=ITERS,
+                                od_type='Iter',
+                                od_wait=10
                               )
     print("### Train CatBoost Regressor ###")
     reg.fit( X_train, y_train, cat_features=categorical_features_indices )
@@ -113,6 +115,7 @@ y_train_pred = model.predict(X_train)
 y_pred = model.predict(X_test)
 
 print("### Compare Train / Test Sets ###")
+print(f"{ITERS} iterations")
 
 # Evaluate the model on training data
 rmse = np.sqrt(ms.mean_squared_error(y_train, y_train_pred))
@@ -125,4 +128,4 @@ print(f"RMSE for Test Data: {rmse}")
 #print(df_test.info())
 # Write predictions to submissions file
 df_test["Listening_Time_minutes"] = model.predict(df_test[x_colnames])
-df_test[["id", "Listening_Time_minutes"]].to_csv("../data/kaggle/catboost_poly_submission.csv", index=False)
+df_test[["id", "Listening_Time_minutes"]].to_csv("../data/kaggle/catboost_submission.csv", index=False)
