@@ -89,7 +89,7 @@ df_[f"{feature}_Bin"] = pd.cut( df_[feature], bins=bin_edges,
                              labels=[0, 1, 2, 3], include_lowest=True
                            )
 
-length_column = df_["Length_Impute"]
+length_column = df_["Episode_Length_minutes"].fillna(-1)
 df_["Cat_Mins"] = (length_column.astype(np.int64)).astype('category')
 df_["Cat_Secs"] = ((length_column * 60).astype(np.int64)).astype('category')
 
@@ -151,7 +151,7 @@ df_test_clean = df_test_clean.join(df_poly_test[unique_poly_features].add_prefix
 
 if args["write"]:
 
-    outfile_str = get_datetime_string( "enc_and_poly" )
+    outfile_str = get_datetime_string( "poly3" )
 
     train_outfile = f"train.{outfile_str}.csv"
     print(f"write train shape: {df_train_clean.shape} to file: {train_outfile}")
