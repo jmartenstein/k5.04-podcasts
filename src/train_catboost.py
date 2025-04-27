@@ -13,10 +13,10 @@ import catboost as cb
 DATA_DIR = "../data/kaggle"
 
 NUM_FOLDS  = 2
-ITERS      = 5000
-PERIOD      = int(ITERS / 50)
+ITERS      = 2500
+PERIOD      = int(ITERS / 25)
 
-infile_str = "enc_and_poly.20250426.110658"
+infile_str = "poly3.20250426.213026"
 
 df_train = pd.read_csv(f"{DATA_DIR}/train.{infile_str}.csv")
 #df_train = pd.read_csv(f"{DATA_DIR}/podcast_dataset.csv")
