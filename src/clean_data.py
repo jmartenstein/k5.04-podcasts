@@ -89,7 +89,7 @@ df_[f"{feature}_Bin"] = pd.cut( df_[feature], bins=bin_edges,
                              labels=[0, 1, 2, 3], include_lowest=True
                            )
 
-length_column = df_["Episode_Length_minutes"].fillna(-1)
+length_column = df_["Episode_Length_minutes"].fillna(0)
 df_["Cat_Mins"] = (length_column.astype(np.int64)).astype('category')
 df_["Cat_Secs"] = ((length_column * 60).astype(np.int64)).astype('category')
 
@@ -110,12 +110,12 @@ df_train_clean = df_[ df_[ TARGET1 ].notna() ].copy()
 df_test_clean = df_[ df_[ TARGET1 ].isna() ].copy()
 df_test_clean.drop( TARGET1, axis=1, inplace=True )
 
-features = [ "Ads_Mins", "Cat_Secs", "All_Cats" ]
+features = [ "Cat_Secs", "Ads_Mins", "All_Cats", "Name_And_Episode" ]
 targets = [ TARGET1, TARGET2 ]
 
 encoded_features = []
 
-enc = pre.TargetEncoder( cv=3 )
+enc = pre.TargetEncoder( cv=5 )
 
 for f in features:
     i = 1
@@ -126,11 +126,11 @@ for f in features:
         df_test_clean[encoded_feature] = enc.transform(df_test_clean[[f]])
         i+=1
 
-    encoded_features.append(encoded_feature)
+        encoded_features.append(encoded_feature)
 
-poly_features = [ "Length_Impute", "Num_Ads", "Host_Popularity_percentage" ] + encoded_features
+poly_features = ["Length_Impute"] + encoded_features
 
-poly = pre.PolynomialFeatures(degree=3)
+poly = pre.PolynomialFeatures(degree=2, interaction_only=True)
 poly.fit( df_train_clean[ poly_features ] )
 feature_names = poly.get_feature_names_out()
 
@@ -151,7 +151,7 @@ df_test_clean = df_test_clean.join(df_poly_test[unique_poly_features].add_prefix
 
 if args["write"]:
 
-    outfile_str = get_datetime_string( "poly3" )
+    outfile_str = get_datetime_string( "rollback" )
 
     train_outfile = f"train.{outfile_str}.csv"
     print(f"write train shape: {df_train_clean.shape} to file: {train_outfile}")
